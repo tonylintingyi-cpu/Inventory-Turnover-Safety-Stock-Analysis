@@ -8,13 +8,17 @@
 
 **Safety Stock Simulation** → For each volatility segment, simulate different safety stock strategies to find the optimal balance between service level and holding cost.  
 
-**Autonomous workflow** → Build a reusable pipeline that automates data cleaning, validation, and report generation each time new quarterly data arrives — enabling continuous inventory monitoring without manual intervention.  
+**Autonomous workflow** → Build a reusable pipeline that automates data cleaning, validation, and visualisation dashboard generation each time new quarterly data arrives — enabling continuous inventory monitoring without manual intervention.  
 
 ## Tech Stack:
 
-- **Python (Jupyter Notebook):** Conduct data profiling to explore data quality issues such as missing values, outliers, and distribution patterns.
-- **Python (Script):** Generate a standalone data cleaning script based on profiling results, ready for automated execution.
-- **n8n:** Automate the cleaning pipeline — trigger the Python script and use an AI agent to generate a data validation report (checking data type consistency, missing values, and anomaly detection), also a visualisation report.
+- **Python (local):** Run data profiling, cleaning, and analysis. After cleaning, call Gemini API to generate a validation summary and send it to the user via terminal for manual approval. Once confirmed, POST the analysis results (JSON) to the n8n webhook.  
+
+- **n8n (PikaPods):** Receive analysis results via webhook, then split into two parallel paths —   
+    1. Call Gemini API to generate a written report. 
+    2. Fetch the pre-built HTML/Chart.js template from GitHub and inject the data to produce an interactive dashboard.   
+
+    Merge both outputs and deliver via email.  
 
 # Data Structure Overview:
 
