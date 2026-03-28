@@ -1,27 +1,45 @@
-# Inventory Turnover Safety Stock Analysis
+# Veltix Inventory Optimization
 
-# Project Overview:
-## Objective:
-**Inventory turnover analysis** →Identify SKUs with low turnover ratio that tie up working capital.  
+## What This Project Does
 
-**Demand Volatility Analysis** → For those underperforming SKUs, analyze demand variability using Coefficient of Variation (CV) to segment SKUs into low / medium / high volatility groups, providing the basis for differentiated safety stock strategies.  
+Veltix is a consumer electronics distributor that imports from Asia. Like many distributors, it has SKUs sitting in the warehouse tying up capital — some because they're genuinely slow sellers, others because their demand is too erratic to stock efficiently. This project identifies those SKUs, diagnoses why they underperform, and simulates smarter safety stock strategies for each.
 
-**Safety Stock Simulation** → For each volatility segment, simulate different safety stock strategies to find the optimal balance between service level and holding cost.  
+The entire workflow is designed to run quarterly: drop in new data, and the pipeline handles cleaning, validation, analysis, reporting, and delivery automatically.
 
-**Autonomous workflow** → Build a reusable pipeline that automates data cleaning, validation, and visualisation dashboard generation each time new quarterly data arrives — enabling continuous inventory monitoring without manual intervention.  
+## Analysis Approach
 
-## Tech Stack:
+The analysis follows three phases, each building on the previous:
 
-- **Python (local):** Run data profiling, cleaning, and analysis. After cleaning, call Gemini API to generate a validation summary and send it to the user via terminal for manual approval. Once confirmed, POST the analysis results (JSON) to the n8n webhook.  
+**Phase 1 — Inventory Turnover Analysis.** Calculate turnover for all 50 SKUs using total sales divided by weekly average inventory across 156 weeks. SKUs with annual turnover below 4.5 (the industry lower bound) and in the bottom 30% are flagged as low-performers. (Consumer electronics distributors typically turn inventory 4.5–9× per year.)
 
-- **n8n (PikaPods):** Receive analysis results via webhook, then split into two parallel paths —   
-    1. Call Gemini API to generate a written report. 
-    2. Fetch the pre-built HTML/Chart.js template from GitHub and inject the data to produce an interactive dashboard.   
+**Phase 2 — Demand Volatility Segmentation.** For the ~15 low-turnover SKUs, compute the Coefficient of Variation (CV = σ/μ) on weekly sales — including zero-sales weeks, since sporadic demand is exactly the kind of volatility that matters for stocking decisions. SKUs are grouped into low (CV < 0.3), medium (0.3–0.6), and high (> 0.6) volatility segments. These thresholds are conservative; the literature commonly uses 0.2/0.7, but narrower bands ensure each group has enough SKUs for meaningful simulation.
 
-    Merge both outputs and deliver via email.  
+**Phase 3 — Safety Stock Simulation.** For each volatility segment, simulate safety stock levels at 85%, 90%, and 95% service levels. The formula accounts for both demand variability and lead time variability (derived from actual replenishment weeks only). Output is a tradeoff curve showing holding cost vs. service level for each segment.
 
-# Data Structure Overview:
+## Dataset
 
-# Execution Summary:
+Synthetic dataset: 50 SKUs × 156 weeks = 7,800 rows, with ~26% dirty data injected. The data is designed so that normal SKUs land at 4.5–9× annual turnover and 15 low-turnover SKUs (3 per category) fall below 2×. CV segmentation emerges naturally from each category's seasonality profile — Wearables with strong Q4 spikes produce high CV, while stable categories like Mobile Accessories produce low CV.
 
-# Recommendation:
+See `veltix_data_dictionary.md` for field definitions and `veltix_data_generation_prompt.md` for generation logic.
+
+## How the Pipeline Works
+
+**Python (local)** handles all data work. First it profiles the raw data and produces an Issue Log documenting every quality problem found. Then a fixed cleaning script runs the full SOP — deduplication, format correction, missing value handling, etc. — regardless of what the Issue Log says. The cleaning script produces a Summary Stats report showing the post-cleaning state of the data.
+
+Both the Issue Log and Summary Stats are sent to Gemini API for cross-referencing: Gemini compares what was wrong before cleaning with what the data looks like after, and flags anything that doesn't add up. The validation summary prints to the terminal for manual approval. Only after confirmation does analysis proceed through the three phases.
+
+**n8n (PikaPods)** takes over after analysis. It receives the results via webhook and runs two parallel paths: Gemini generates a technical report (full detail, for the analyst) and an executive summary (conclusions and action items, for the inventory manager), while n8n pulls an HTML/Chart.js template from GitHub and injects the data to build an interactive dashboard. Everything — both reports, the dashboard, and the Issue Log — is bundled and sent via email.
+
+**GitHub** hosts the dashboard template. This keeps it version-controlled and visible in the portfolio.
+
+## Tech Stack
+
+| Component | Tool | Role |
+|-----------|------|------|
+| Synthetic data generation | Claude Code | Generate dataset based on data generation prompt |
+| Data processing & analysis | Python | Profiling (Issue Log), fixed cleaning SOP (Summary Stats), three analysis phases |
+| Cleaning validation | Gemini API (called from Python) | Cross-reference Issue Log vs Summary Stats, printed to terminal for approval |
+| Workflow orchestration | n8n on PikaPods | Report generation, dashboard assembly, email delivery |
+| Report generation | Gemini API (called from n8n) | Two audience-specific reports from the same analysis results |
+| Dashboard | HTML + Chart.js (hosted on GitHub) | Interactive charts: turnover distribution, CV segmentation, SS tradeoff curves |
+| Delivery | Email (via n8n) | Final bundle sent to stakeholders |
