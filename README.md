@@ -28,9 +28,7 @@ See `veltix_data_dictionary.md` for field definitions and `veltix_data_generatio
 
 Both the Issue Log and Summary Stats are sent to Gemini API for cross-referencing: Gemini compares what was wrong before cleaning with what the data looks like after, and flags anything that doesn't add up. The validation summary prints to the terminal for manual approval. Only after confirmation does analysis proceed through the three phases.
 
-**n8n (PikaPods)** takes over after analysis. It receives the results via webhook and runs two parallel paths: Gemini generates a technical report (full detail, for the analyst) and an executive summary (conclusions and action items, for the inventory manager), while n8n pulls an HTML/Chart.js template from GitHub and injects the data to build an interactive dashboard. Everything — both reports, the dashboard, and the Issue Log — is bundled and sent via email.
-
-**GitHub** hosts the dashboard template. This keeps it version-controlled and visible in the portfolio.
+After analysis, the results are sent to **Gemini API** to generate two reports: a technical report (full detail, for the analyst) and an executive summary (conclusions and action items, for the inventory manager). Python then assembles everything — both reports, Chart.js interactive charts, and the analysis data — into a single self-contained HTML file.
 
 ## Tech Stack
 
@@ -39,7 +37,5 @@ Both the Issue Log and Summary Stats are sent to Gemini API for cross-referencin
 | Synthetic data generation | Claude Code | Generate dataset based on data generation prompt |
 | Data processing & analysis | Python | Profiling (Issue Log), fixed cleaning SOP (Summary Stats), three analysis phases |
 | Cleaning validation | Gemini API (called from Python) | Cross-reference Issue Log vs Summary Stats, printed to terminal for approval |
-| Workflow orchestration | n8n on PikaPods | Report generation, dashboard assembly, email delivery |
-| Report generation | Gemini API (called from n8n) | Two audience-specific reports from the same analysis results |
-| Dashboard | HTML + Chart.js (hosted on GitHub) | Interactive charts: turnover distribution, CV segmentation, SS tradeoff curves |
-| Delivery | Email (via n8n) | Final bundle sent to stakeholders |
+| Report generation | Gemini API (called from Python) | Two audience-specific reports from the same analysis results |
+| Dashboard + Report | HTML + Chart.js (local) | Python assembles report text and interactive charts into a single self-contained HTML file |
