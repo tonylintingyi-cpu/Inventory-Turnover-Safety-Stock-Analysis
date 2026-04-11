@@ -38,4 +38,4 @@ After analysis, the results are sent to **Gemini API** to generate two reports: 
 | Data processing & analysis | Python | Profiling (Issue Log), fixed cleaning SOP (Summary Stats), three analysis phases |
 | Cleaning validation | Gemini API (called from Python) | Cross-reference Issue Log vs Summary Stats, printed to terminal for approval |
 | Report generation | Gemini API (called from Python) | Two audience-specific reports from the same analysis results |
-| Dashboard + Report | HTML + Chart.js (local) | Python assembles report text and interactive charts into a single self-contained HTML file |
+| Dashboard + Report | HTML + Chart.js (local) | Single self-contained HTML file with report text + interactive dashboard|
