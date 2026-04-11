@@ -1,5 +1,3 @@
-# Veltix Inventory Optimization
-
 ## What This Project Does
 
 Veltix is a consumer electronics distributor that imports from Asia. Like many distributors, it has SKUs sitting in the warehouse tying up capital — some because they're genuinely slow sellers, others because their demand is too erratic to stock efficiently. This project identifies those SKUs, diagnoses why they underperform, and simulates smarter safety stock strategies for each.
@@ -28,14 +26,18 @@ See `veltix_data_dictionary.md` for field definitions and `veltix_data_generatio
 
 Both the Issue Log and Summary Stats are sent to Gemini API for cross-referencing: Gemini compares what was wrong before cleaning with what the data looks like after, and flags anything that doesn't add up. The validation summary prints to the terminal for manual approval. Only after confirmation does analysis proceed through the three phases.
 
-After analysis, the results are sent to **Gemini API** to generate two reports: a technical report (full detail, for the analyst) and an executive summary (conclusions and action items, for the inventory manager). Python then assembles everything — both reports, Chart.js interactive charts, and the analysis data — into a single self-contained HTML file.
+After analysis, the same Python script calls Gemini API twice — once for a technical report (full detail, for the analyst) and once for an executive summary (conclusions and action items, for the inventory manager). The report text and three analysis data tables are then written into a pre-designed Excel template via openpyxl. The template's charts are bound to fixed data ranges, so they update automatically when new numbers are injected. The result is a single `.xlsx` file that any stakeholder can open — no browser, no deployment, no dependencies.
 
 ## Tech Stack
 
 | Component | Tool | Role |
-|-----------|------|------|
+| --- | --- | --- |
 | Synthetic data generation | Claude Code | Generate dataset based on data generation prompt |
 | Data processing & analysis | Python | Profiling (Issue Log), fixed cleaning SOP (Summary Stats), three analysis phases |
 | Cleaning validation | Gemini API (called from Python) | Cross-reference Issue Log vs Summary Stats, printed to terminal for approval |
 | Report generation | Gemini API (called from Python) | Two audience-specific reports from the same analysis results |
-| Dashboard + Report | HTML + Chart.js (local) | Single self-contained HTML file with report text + interactive dashboard|
+| Output | Excel + openpyxl (local) | Report text + data tables written into pre-designed Excel template; charts auto-update from data ranges |
+
+## Execution Summary:
+
+## Recommendation:
