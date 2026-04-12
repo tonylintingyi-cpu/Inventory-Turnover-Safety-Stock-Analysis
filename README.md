@@ -1,3 +1,4 @@
+
 ## What This Project Does
 
 Veltix is a consumer electronics distributor that imports from Asia. Like many distributors, it has SKUs sitting in the warehouse tying up capital — some because they're genuinely slow sellers, others because their demand is too erratic to stock efficiently. This project identifies those SKUs, diagnoses why they underperform, and simulates smarter safety stock strategies for each.
@@ -26,7 +27,7 @@ See `veltix_data_dictionary.md` for field definitions and `veltix_data_generatio
 
 Both the Issue Log and Summary Stats are sent to Gemini API for cross-referencing: Gemini compares what was wrong before cleaning with what the data looks like after, and flags anything that doesn't add up. The validation summary prints to the terminal for manual approval. Only after confirmation does analysis proceed through the three phases.
 
-After analysis, the same Python script calls Gemini API twice — once for a technical report (full detail, for the analyst) and once for an executive summary (conclusions and action items, for the inventory manager). The report text and three analysis data tables are then written into a pre-designed Excel template via openpyxl. The template's charts are bound to fixed data ranges, so they update automatically when new numbers are injected. The result is a single `.xlsx` file that any stakeholder can open — no browser, no deployment, no dependencies.
+After analysis, the same Python script calls Gemini API twice — once for a technical report (full detail, for the analyst) and once for an executive summary (conclusions and action items, for the inventory manager). The report text and three analysis data tables are exported as a structured JSON object, which Jinja2 injects into an HTML template. Chart.js renders the charts client-side — a turnover distribution bar chart, a CV segmentation scatter plot, and a safety stock tradeoff curve. The result is a single self-contained `report.html` that opens in any browser with no setup required.
 
 ## Tech Stack
 
@@ -36,8 +37,10 @@ After analysis, the same Python script calls Gemini API twice — once for a tec
 | Data processing & analysis | Python | Profiling (Issue Log), fixed cleaning SOP (Summary Stats), three analysis phases |
 | Cleaning validation | Gemini API (called from Python) | Cross-reference Issue Log vs Summary Stats, printed to terminal for approval |
 | Report generation | Gemini API (called from Python) | Two audience-specific reports from the same analysis results |
-| Output | Excel + openpyxl (local) | Report text + data tables written into pre-designed Excel template; charts auto-update from data ranges |
+| Visualization | Chart.js (CDN) | Interactive charts rendered client-side (turnover distribution, CV scatter, tradeoff curve) |
+| Report assembly | Jinja2 (local) | Injects JSON (report text + chart data + tables) into HTML template; outputs a single self-contained report.html |
 
 ## Execution Summary:
 
 ## Recommendation:
+
