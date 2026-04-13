@@ -7,7 +7,7 @@
 ## 專案背景
 
 所有專案文件在 `docs/` 資料夾：
-- `docs/veltix專案prd.md` — 完整 PRD，包含分析方法、公式、假設、技術架構
+- `docs/Veltix PRD拷貝.md` — 完整 PRD，包含分析方法、公式、假設、技術架構
 - `docs/Veltix 資料字典.md` — 資料欄位定義、數值範圍、生成邏輯（英文版：`docs/veltix_data_dictionary.md`）
 - `docs/Veltix 資料生成規格.md` — 合成資料生成規格（英文版：`docs/veltix_data_generation_prompt.md`）
 
@@ -46,8 +46,7 @@ veltix/
 │   ├── raw/               # 原始髒數據
 │   └── cleaned/           # 清洗後資料
 ├── notebooks/             # EDA 和探索用 Jupyter Notebook（開發用，不是 pipeline）
-├── src/                   # 正式 pipeline 腳本
-│   └── pipeline.py        # 清洗 + Gemini validation + 分析 + 組裝 HTML 報告
+├── pipeline.py            # 正式 pipeline：清洗 + Gemini validation + 分析 + 組裝 HTML 報告
 ├── templates/             # HTML/Chart.js dashboard template
 ├── output/                # Issue Log、Summary Stats、分析結果
 └── README.md
@@ -56,6 +55,17 @@ veltix/
 ## 當前進度
 
 追蹤 `docs/veltix_prd.md` 裡的 Next Steps 區塊來確認目前做到哪一步。
+
+## 進度 Log 規則
+
+根目錄的 `log.md` 是跨對話的進度追蹤檔：
+
+- **對話開始時：** 先讀 `log.md` 最上方的最新 entry，接上脈絡後再回答。
+- **對話進行中有實質進度時：** 主動更新 `log.md`，不用等用戶要求。實質進度 = 完成分析步驟、做出決策、改動代碼、釐清卡關、確認下一步方向。純聊天或查詢不用記。
+- **對話結束前：** 確認 `log.md` 今日 entry 有反映本次進度。
+- **格式：** 最新日期放最上面（反向時序），每個日期下分「完成 / 進行中 / 下一步 / 備註或卡關」四區塊，同一天多次對話就追加到當天 entry 裡。
+- **內容密度：** 寫決策和卡關，不要寫逐字對話流水帳。下個對話的自己要能從 entry 直接知道「現在在哪、為什麼這樣走、接下來做什麼」。
+- **快捷指令 `log`：** 用戶只輸入 `log`（或 `log:` 後面接補充說明）時，表示要我把當下對話的進度整理後寫入 `log.md` 今日 entry。整理完回報一句「已更新 log」即可，不需要重述內容。
 
 ---
 

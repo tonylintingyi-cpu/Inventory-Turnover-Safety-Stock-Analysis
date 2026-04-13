@@ -23,6 +23,12 @@ See `veltix_data_dictionary.md` for field definitions and `veltix_data_generatio
 
 ## How the Pipeline Works
 
+The project is organized in three layers, each with a distinct role:
+
+- **Exploration notebooks** (`notebooks/data_profiling.ipynb`, `notebooks/eda.ipynb`) — show the thinking process for data profiling and EDA. These are not part of the production run; they exist to document how the cleaning rules and analysis decisions were reached.
+- **Core pipeline** (`pipeline.py`) — the automated production flow. Everything below runs from this single script.
+- **Claude Skill** — a thin demo-facing trigger. Drop a CSV into the conversation and the Skill invokes `pipeline.py` with no manual steps. The Skill does not re-implement logic; it is purely an interface.
+
 **Python (local)** handles all data work. First it profiles the raw data and produces an Issue Log documenting every quality problem found. Then a fixed cleaning script runs the full SOP — deduplication, format correction, missing value handling, etc. — regardless of what the Issue Log says. The cleaning script produces a Summary Stats report showing the post-cleaning state of the data.
 
 Both the Issue Log and Summary Stats are sent to Gemini API for cross-referencing: Gemini compares what was wrong before cleaning with what the data looks like after, and flags anything that doesn't add up. The validation summary prints to the terminal for manual approval. Only after confirmation does analysis proceed through the three phases.
@@ -34,11 +40,13 @@ After analysis, the same Python script calls Gemini API twice — once for a tec
 | Component | Tool | Role |
 | --- | --- | --- |
 | Synthetic data generation | Claude Code | Generate dataset based on data generation prompt |
-| Data processing & analysis | Python | Profiling (Issue Log), fixed cleaning SOP (Summary Stats), three analysis phases |
+| Exploration notebooks | Jupyter (pandas) | Data profiling + EDA as documented thinking process; informs pipeline rules but does not run in production |
+| Data processing & analysis | Python (`pipeline.py`) | Profiling (Issue Log), fixed cleaning SOP (Summary Stats), three analysis phases |
 | Cleaning validation | Gemini API (called from Python) | Cross-reference Issue Log vs Summary Stats, printed to terminal for approval |
 | Report generation | Gemini API (called from Python) | Two audience-specific reports from the same analysis results |
 | Visualization | Chart.js (CDN) | Interactive charts rendered client-side (turnover distribution, CV scatter, tradeoff curve) |
 | Report assembly | Jinja2 (local) | Injects JSON (report text + chart data + tables) into HTML template; outputs a single self-contained report.html |
+| Demo trigger | Claude Skill | User-facing interface — drop in a CSV, the Skill invokes `pipeline.py` and returns `report.html`. No analysis logic lives here. |
 
 ## Execution Summary:
 
