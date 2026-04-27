@@ -2,7 +2,7 @@
 .venv/
 venv/
 env/
-
+.vscode
 # macOS
 .DS_Store
 
