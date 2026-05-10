@@ -24,17 +24,20 @@
 - Section 3 Missing values 盤點：sales_qty 266、inventory_begin 275，兩者無重疊 → 決定先驗庫存等式再回頭用等式回推
 - Section 3 Invalid logic：庫存等式驗證 219 mismatch → 拆 sign error (68) / genuine (151)
 - Sign error 修完：68 筆 + 7 筆漏網負值（5 筆 inventory_begin NaN 沒進等式檢查、2 筆已歸 genuine）一次翻正，全 df 無負值
-
-### 進行中
-- Genuine error 處理（151 筆即使翻正號也無法平衡的庫存等式異常）
+- Genuine error 處理：先用 describe + hist 看誤差分布（median −39、IQR ±200，但 max 3177 為極端值），再按 category 與 week 分布確認沒有集中性 → 直接 drop 151 筆
+- Missing value imputation：用等式移項回推（缺 sales_qty 用 `inv_begin + receipts - inv_end`、缺 inv_begin 用 `inv_end + sales_qty - receipts`）`fillna(Series)` 補完
+- Lead time logic check（補上原本只在 describe 觀察、未實際處理的問題）：用 `sorted(unique())` 攤開 53 個值，發現 33 筆落在 (1, 13) 違反「有進貨才有 lead time」業務規則、2 筆 > 56 → 全 drop 35 筆
+- Final validation：發現 imputation 後仍漏 1 筆 negative sales_qty（imputation 暴露出 NaN 列其他三欄的隱性 data integrity 問題）→ drop 補上
+- 最終 7613 筆，存到 `data/cleaned/veltix_cleaned.csv`
+- Commit `c3f3afb` 已 push 到 origin/main
 
 ### 下一步
-- 處理 genuine error
-- 回頭用庫存等式回推 missing values（sales_qty 266、inventory_begin 275）
+- 進入 `notebooks/EDA.ipynb`（已建空檔）開始探索性分析
+- 之後接 `pipeline.py` 由 AI 從 cleaning + EDA notebook 生成
 
 ### 備註 / 卡關
 - 原本 4/12 規劃的「按檢查類型橫向組織」結構已放棄，改成按處理流程組織
-- 原規劃的 lead_time_days / unit_cost / holding_cost_rate 範圍檢查、以及 2.5 剩 4 項邏輯一致性（lead_time 有效性、庫存連續性、unit_cost 固定性、rate 固定性）都還沒做，待確認是否要在 cleaning notebook 補回，還是移到後續 EDA notebook
+- 原規劃的 unit_cost / holding_cost_rate 範圍檢查在 describe 觀察階段已確認 OK；其他 4 項跨列一致性（庫存連續性、unit_cost 固定性、rate 固定性、lead_time 有效性）這版 cleaning notebook 沒做，留到 EDA 或後續再補
 - log 距上次更新近一個月，跟 notebook 實際狀態落差很大，這次大幅改寫對齊現況
 
 ---
