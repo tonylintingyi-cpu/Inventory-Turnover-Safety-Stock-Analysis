@@ -37,6 +37,22 @@ Veltix 的庫存中有一批 SKU 長期賣不動，佔用資金卻沒有貢獻�
 
 ## 5. Methodology
 
+### 5.0 EDA — KPI 導向的探索
+
+正式三階段分析前，在 `notebooks/EDA.ipynb` 進行探索性分析。EDA 結構直接對應 §3 的三個 Core Analysis Questions —— 每個 section preview 一個 question 的答案或輸入參數，產出供 `pipeline.py` 三階段分析參考的設計決策。不採教科書式「逐欄位掃描分布」的做法。
+
+| EDA 節 | 對應 Core Question | 對應 Phase | EDA 階段在做什麼 |
+| --- | --- | --- | --- |
+| 1. 周轉率分布與低效 SKU | Q1 | Phase 1 | **直接 preview Q1 答案**：算 50 SKU 年周轉率，看分布形狀、驗證 PRD「< 4.5」門檻、列出排名後 30% 痛點 SKU |
+| 2. 需求波動性分布 | Q2 | Phase 2 | **驗證 Q2 門檻**：對全部 50 SKU（非 Phase 2 正式分析的低周轉 15 SKU）算 CV，看母體分布形狀，驗證 PRD 0.3 / 0.6 切點合理性 |
+| 3. σ 與 Lead Time 探索 | Q3 | Phase 3 | **探索 Q3 公式的輸入**（非直接答 Q3，因 Q3 是 what-if 模擬）：σ_d 季節性、σ_L 異質性、L̄ 分布，決定 Phase 3 模擬時參數該怎麼算 |
+
+**Section 2 範圍說明：** Phase 2 正式分析只看 Phase 1 篩出的低周轉 ~15 SKU，但 EDA Section 2 用全部 50 SKU 算 CV —— 因為 0.3 / 0.6 門檻是針對母體設計的參數，只看 15 個樣本太少、看不出分布形狀，無法驗證門檻合理性。
+
+EDA 輸出不是「資料概覽」，而是「下游分析的設計決策清單」。
+
+---
+
 ### Phase 1 — Inventory Turnover Analysis
 
 **目的：** 識別資金效率最差的 SKU。
@@ -260,7 +276,7 @@ Python 輸出一個 JSON 物件，Jinja2 將其注入 HTML 模板的 `<script>` 
 
 | 層 | 檔案 / 介面 | 職責 | 不做什麼 |
 | --- | --- | --- | --- |
-| 探索層 | `notebooks/data_profiling.ipynb`、`notebooks/eda.ipynb` | 展示 profiling 與 EDA 的思考過程，作為清洗規則與分析決策的推導依據 | 不參與 production 執行；不是 pipeline 的一部分 |
+| 探索層 | `notebooks/data_cleaning.ipynb`、`notebooks/EDA.ipynb` | 展示資料清理與 EDA 的思考過程。EDA 以三階段分析（Turnover / CV / Safety Stock）為框架組織，非教科書式逐欄位掃描，每節對應後續分析的決策依據 | 不參與 production 執行；不是 pipeline 的一部分 |
 | 核心層 | `pipeline.py` | 清洗 + Gemini validation + 三階段分析 + 組裝 HTML 報告 | 不處理觸發邏輯、不做 UI |
 | Demo 層 | Claude Skill | 對外 demo 的觸發介面，使用者丟 csv 進對話即呼叫 `pipeline.py` | 不複製分析邏輯；只負責 I/O 介接 |
 
@@ -291,7 +307,7 @@ Raw Data (CSV)
 
 | 元件 | 工具 | 職責 |
 | --- | --- | --- |
-| Exploration | Jupyter Notebook (pandas) | 探索層：profiling 與 EDA 的思考過程；產出清洗規則依據，不參與 production 執行 |
+| Exploration | Jupyter Notebook (pandas) | 探索層：資料清理與 EDA 的思考過程。EDA 以三階段分析為框架組織，產出清洗規則與分析設計決策依據；不參與 production 執行 |
 | Data Processing | Python `pipeline.py` (local) | 核心層：資料 profiling（產出 Issue Log）、固定清洗 SOP（產出 Summary Stats）、三階段分析 |
 | Cleaning Validation | Gemini API (from Python) | 交叉比對 Issue Log 與 Summary Stats 的合理性，摘要印到 terminal 供人工確認 |
 | Report Generation | Gemini API (from Python) | 依不同 prompt 生成 Technical Report 和 Executive Summary |
