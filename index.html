@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Veltix Inventory Analysis</title>
+<script src="https://cdn.plot.ly/plotly-2.35.2.min.js" charset="utf-8"></script>
+<style>
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang TC", "Microsoft JhengHei", Roboto, sans-serif;
+    background: #f8fafc;
+    color: #0f172a;
+    line-height: 1.5;
+  }
+  .container { max-width: 1400px; margin: 0 auto; padding: 2rem 1.5rem 3rem; }
+  header { margin-bottom: 1.5rem; }
+  h1 { margin: 0; font-size: 1.6rem; font-weight: 600; letter-spacing: -0.01em; }
+  .subtitle { color: #64748b; margin: 0.25rem 0 0; font-size: 0.9rem; }
+
+  .kpi-row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+  }
+  .kpi-card {
+    background: white;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 1.1rem 1.25rem;
+  }
+  .kpi-label {
+    font-size: 0.72rem;
+    color: #64748b;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    font-weight: 600;
+  }
+  .kpi-value {
+    font-size: 1.6rem;
+    font-weight: 600;
+    margin-top: 0.4rem;
+    color: #0f172a;
+    line-height: 1.1;
+    font-variant-numeric: tabular-nums;
+  }
+  .kpi-sub { font-size: 0.8rem; color: #64748b; margin-top: 0.35rem; }
+
+  .card {
+    background: white;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 0.9rem 1rem 0.6rem;
+    margin-bottom: 1.5rem;
+  }
+  .chart-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
+    margin-bottom: 1.5rem;
+  }
+  .chart-row > .card { margin-bottom: 0; }
+
+  .tables-card {
+    background: white;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 0.5rem 1rem 1rem;
+  }
+  .tab-nav {
+    display: flex;
+    gap: 0.25rem;
+    border-bottom: 1px solid #e2e8f0;
+    margin-bottom: 0.85rem;
+  }
+  .tab-btn {
+    background: transparent;
+    border: none;
+    border-bottom: 2px solid transparent;
+    padding: 0.7rem 1rem;
+    font: inherit;
+    font-size: 0.88rem;
+    font-weight: 500;
+    color: #64748b;
+    cursor: pointer;
+    transition: color 0.15s, border-color 0.15s;
+    margin-bottom: -1px;
+  }
+  .tab-btn:hover { color: #0f172a; }
+  .tab-btn.active {
+    color: #2563eb;
+    border-bottom-color: #2563eb;
+    font-weight: 600;
+  }
+  .tab-count {
+    color: #94a3b8;
+    font-weight: 400;
+    margin-left: 0.35rem;
+    font-size: 0.8rem;
+  }
+  .tab-btn.active .tab-count { color: #60a5fa; }
+  .tab-panel { display: none; }
+  .tab-panel.active { display: block; }
+  .table-scroll { overflow: auto; max-height: 500px; }
+  table { border-collapse: collapse; width: 100%; font-size: 0.82rem; }
+  th, td {
+    text-align: left;
+    padding: 0.45rem 0.55rem;
+    border-bottom: 1px solid #e2e8f0;
+    white-space: nowrap;
+  }
+  th {
+    background: #f1f5f9;
+    font-weight: 600;
+    color: #475569;
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    font-size: 0.76rem;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+  }
+  th.num, td.num { text-align: right; font-variant-numeric: tabular-nums; }
+  tbody tr:hover { background: #f8fafc; }
+
+  .badge {
+    display: inline-block;
+    padding: 0.1rem 0.5rem;
+    border-radius: 999px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+  }
+  .badge-low_cv { background: #dcfce7; color: #166534; }
+  .badge-mid_cv { background: #fef3c7; color: #92400e; }
+  .badge-high_cv { background: #fee2e2; color: #991b1b; }
+  .badge-low-turn { background: #fee2e2; color: #991b1b; margin-left: 0.4rem; }
+
+  @media (max-width: 1100px) {
+    .kpi-row { grid-template-columns: repeat(2, 1fr); }
+    .chart-row { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+  <header>
+    <h1>Veltix Inventory Analysis</h1>
+    <p class="subtitle">50 SKUs · 156 weeks · 5 categories · synthetic consumer-electronics dataset</p>
+  </header>
+
+  <section class="kpi-row">
+    <div class="kpi-card">
+      <div class="kpi-label">Coverage</div>
+      <div class="kpi-value">50 SKUs</div>
+      <div class="kpi-sub">156 weeks · 5 categories</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Low-turnover SKUs</div>
+      <div class="kpi-value">15 / 50</div>
+      <div class="kpi-sub">30% of catalog, below 1.8 turns/yr</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Worst-turning SKU</div>
+      <div class="kpi-value">MA-009</div>
+      <div class="kpi-sub">0.81 turns/yr · ~15 months on hand</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Holding cost gap (95% service level)</div>
+      <div class="kpi-value">6.2× higher</div>
+      <div class="kpi-sub">high_cv $33/wk vs low_cv $5/wk</div>
+    </div>
+  </section>
+
+  <div class="card">
+    <div id="chart1" style="height: 480px;"></div>
+  </div>
+
+  <div class="chart-row">
+    <div class="card"><div id="chart2" style="height: 440px;"></div></div>
+    <div class="card"><div id="chart3" style="height: 440px;"></div></div>
+  </div>
+
+  <div class="tables-card">
+    <div class="tab-nav" role="tablist">
+      <button class="tab-btn active" data-tab="turnover">Turnover Ranking<span class="tab-count">50</span></button>
+      <button class="tab-btn" data-tab="cv">CV Segmentation<span class="tab-count">15</span></button>
+      <button class="tab-btn" data-tab="ss">Safety Stock Simulation<span class="tab-count">15</span></button>
+    </div>
+
+    <div class="tab-panel active" data-panel="turnover">
+      <div class="table-scroll">
+        <table id="tbl-turnover">
+          <thead><tr><th>SKU</th><th>Category</th><th class="num">Turnover</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="tab-panel" data-panel="cv">
+      <div class="table-scroll">
+        <table id="tbl-cv">
+          <thead><tr><th>SKU</th><th>Category</th><th class="num">Avg Demand</th><th class="num">CV</th><th>Group</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="tab-panel" data-panel="ss">
+      <div class="table-scroll">
+        <table id="tbl-ss">
+          <thead><tr>
+            <th>SKU</th><th>Group</th>
+            <th class="num">SS 85%</th><th class="num">SS 90%</th><th class="num">SS 95%</th>
+            <th class="num">HC 85%</th><th class="num">HC 90%</th><th class="num">HC 95%</th>
+          </tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const DATA = {"kpi": {"sku_count": 50, "week_count": 156, "cat_count": 5, "low_count": 15, "worst_sku": "MA-009", "worst_turn": 0.81, "cost_ratio": 6.2}, "chart1": {"sku": ["AU-002", "SH-006", "AU-003", "WR-003", "WR-002", "MA-003", "SH-005", "AU-006", "CP-002", "AU-001", "AU-004", "WR-005", "WR-006", "MA-002", "WR-007", "MA-004", "AU-005", "CP-006", "MA-006", "CP-004", "SH-001", "CP-001", "CP-007", "CP-003", "SH-003", "MA-005", "MA-007", "SH-007", "SH-004", "CP-005", "AU-007", "MA-001", "SH-002", "WR-001", "WR-004", "SH-008", "WR-009", "WR-008", "AU-010", "WR-010", "AU-009", "AU-008", "MA-010", "CP-010", "CP-008", "CP-009", "SH-009", "MA-008", "SH-010", "MA-009"], "turnover": [8.0, 7.79, 7.55, 7.52, 7.52, 7.45, 7.2, 7.1, 7.04, 6.98, 6.59, 6.58, 6.49, 6.37, 6.29, 6.25, 6.14, 6.04, 6.04, 5.74, 5.65, 5.62, 5.58, 5.52, 5.31, 5.28, 5.24, 5.11, 5.11, 5.1, 5.0, 4.87, 4.76, 4.64, 4.56, 1.75, 1.68, 1.57, 1.46, 1.42, 1.35, 1.25, 1.23, 1.18, 1.17, 1.15, 1.13, 1.06, 0.99, 0.81], "category": ["Audio", "Smart Home", "Audio", "Wearables", "Wearables", "Mobile Accessories", "Smart Home", "Audio", "Computer Peripherals", "Audio", "Audio", "Wearables", "Wearables", "Mobile Accessories", "Wearables", "Mobile Accessories", "Audio", "Computer Peripherals", "Mobile Accessories", "Computer Peripherals", "Smart Home", "Computer Peripherals", "Computer Peripherals", "Computer Peripherals", "Smart Home", "Mobile Accessories", "Mobile Accessories", "Smart Home", "Smart Home", "Computer Peripherals", "Audio", "Mobile Accessories", "Smart Home", "Wearables", "Wearables", "Smart Home", "Wearables", "Wearables", "Audio", "Wearables", "Audio", "Audio", "Mobile Accessories", "Computer Peripherals", "Computer Peripherals", "Computer Peripherals", "Smart Home", "Mobile Accessories", "Smart Home", "Mobile Accessories"], "is_low": [false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true]}, "chart2": {"low_cv": {"sku": ["CP-008", "CP-009", "CP-010", "MA-008", "MA-009", "MA-010", "SH-008", "SH-009", "SH-010"], "demand": [13.0, 29.9, 21.7, 50.5, 76.4, 77.8, 11.8, 7.0, 19.2], "cv": [0.19, 0.18, 0.178, 0.146, 0.146, 0.144, 0.221, 0.218, 0.215], "category": ["Computer Peripherals", "Computer Peripherals", "Computer Peripherals", "Mobile Accessories", "Mobile Accessories", "Mobile Accessories", "Smart Home", "Smart Home", "Smart Home"]}, "mid_cv": {"sku": ["AU-008", "AU-009", "AU-010"], "demand": [22.9, 23.9, 52.8], "cv": [0.5, 0.539, 0.558], "category": ["Audio", "Audio", "Audio"]}, "high_cv": {"sku": ["WR-008", "WR-009", "WR-010"], "demand": [21.6, 20.9, 17.5], "cv": [0.749, 0.699, 0.728], "category": ["Wearables", "Wearables", "Wearables"]}}, "chart3": {"low_cv": [3.39, 4.17, 5.37], "mid_cv": [11.63, 14.32, 18.46], "high_cv": [21.09, 25.96, 33.46]}, "table_turnover": [{"sku": "AU-002", "category": "Audio", "turnover": 8.0, "is_low": false}, {"sku": "SH-006", "category": "Smart Home", "turnover": 7.79, "is_low": false}, {"sku": "AU-003", "category": "Audio", "turnover": 7.55, "is_low": false}, {"sku": "WR-003", "category": "Wearables", "turnover": 7.52, "is_low": false}, {"sku": "WR-002", "category": "Wearables", "turnover": 7.52, "is_low": false}, {"sku": "MA-003", "category": "Mobile Accessories", "turnover": 7.45, "is_low": false}, {"sku": "SH-005", "category": "Smart Home", "turnover": 7.2, "is_low": false}, {"sku": "AU-006", "category": "Audio", "turnover": 7.1, "is_low": false}, {"sku": "CP-002", "category": "Computer Peripherals", "turnover": 7.04, "is_low": false}, {"sku": "AU-001", "category": "Audio", "turnover": 6.98, "is_low": false}, {"sku": "AU-004", "category": "Audio", "turnover": 6.59, "is_low": false}, {"sku": "WR-005", "category": "Wearables", "turnover": 6.58, "is_low": false}, {"sku": "WR-006", "category": "Wearables", "turnover": 6.49, "is_low": false}, {"sku": "MA-002", "category": "Mobile Accessories", "turnover": 6.37, "is_low": false}, {"sku": "WR-007", "category": "Wearables", "turnover": 6.29, "is_low": false}, {"sku": "MA-004", "category": "Mobile Accessories", "turnover": 6.25, "is_low": false}, {"sku": "AU-005", "category": "Audio", "turnover": 6.14, "is_low": false}, {"sku": "CP-006", "category": "Computer Peripherals", "turnover": 6.04, "is_low": false}, {"sku": "MA-006", "category": "Mobile Accessories", "turnover": 6.04, "is_low": false}, {"sku": "CP-004", "category": "Computer Peripherals", "turnover": 5.74, "is_low": false}, {"sku": "SH-001", "category": "Smart Home", "turnover": 5.65, "is_low": false}, {"sku": "CP-001", "category": "Computer Peripherals", "turnover": 5.62, "is_low": false}, {"sku": "CP-007", "category": "Computer Peripherals", "turnover": 5.58, "is_low": false}, {"sku": "CP-003", "category": "Computer Peripherals", "turnover": 5.52, "is_low": false}, {"sku": "SH-003", "category": "Smart Home", "turnover": 5.31, "is_low": false}, {"sku": "MA-005", "category": "Mobile Accessories", "turnover": 5.28, "is_low": false}, {"sku": "MA-007", "category": "Mobile Accessories", "turnover": 5.24, "is_low": false}, {"sku": "SH-007", "category": "Smart Home", "turnover": 5.11, "is_low": false}, {"sku": "SH-004", "category": "Smart Home", "turnover": 5.11, "is_low": false}, {"sku": "CP-005", "category": "Computer Peripherals", "turnover": 5.1, "is_low": false}, {"sku": "AU-007", "category": "Audio", "turnover": 5.0, "is_low": false}, {"sku": "MA-001", "category": "Mobile Accessories", "turnover": 4.87, "is_low": false}, {"sku": "SH-002", "category": "Smart Home", "turnover": 4.76, "is_low": false}, {"sku": "WR-001", "category": "Wearables", "turnover": 4.64, "is_low": false}, {"sku": "WR-004", "category": "Wearables", "turnover": 4.56, "is_low": false}, {"sku": "SH-008", "category": "Smart Home", "turnover": 1.75, "is_low": true}, {"sku": "WR-009", "category": "Wearables", "turnover": 1.68, "is_low": true}, {"sku": "WR-008", "category": "Wearables", "turnover": 1.57, "is_low": true}, {"sku": "AU-010", "category": "Audio", "turnover": 1.46, "is_low": true}, {"sku": "WR-010", "category": "Wearables", "turnover": 1.42, "is_low": true}, {"sku": "AU-009", "category": "Audio", "turnover": 1.35, "is_low": true}, {"sku": "AU-008", "category": "Audio", "turnover": 1.25, "is_low": true}, {"sku": "MA-010", "category": "Mobile Accessories", "turnover": 1.23, "is_low": true}, {"sku": "CP-010", "category": "Computer Peripherals", "turnover": 1.18, "is_low": true}, {"sku": "CP-008", "category": "Computer Peripherals", "turnover": 1.17, "is_low": true}, {"sku": "CP-009", "category": "Computer Peripherals", "turnover": 1.15, "is_low": true}, {"sku": "SH-009", "category": "Smart Home", "turnover": 1.13, "is_low": true}, {"sku": "MA-008", "category": "Mobile Accessories", "turnover": 1.06, "is_low": true}, {"sku": "SH-010", "category": "Smart Home", "turnover": 0.99, "is_low": true}, {"sku": "MA-009", "category": "Mobile Accessories", "turnover": 0.81, "is_low": true}], "table_cv": [{"sku": "MA-010", "category": "Mobile Accessories", "avg_demand": 77.8, "cv": 0.144, "group": "low_cv"}, {"sku": "MA-008", "category": "Mobile Accessories", "avg_demand": 50.5, "cv": 0.146, "group": "low_cv"}, {"sku": "MA-009", "category": "Mobile Accessories", "avg_demand": 76.4, "cv": 0.146, "group": "low_cv"}, {"sku": "CP-010", "category": "Computer Peripherals", "avg_demand": 21.7, "cv": 0.178, "group": "low_cv"}, {"sku": "CP-009", "category": "Computer Peripherals", "avg_demand": 29.9, "cv": 0.18, "group": "low_cv"}, {"sku": "CP-008", "category": "Computer Peripherals", "avg_demand": 13.0, "cv": 0.19, "group": "low_cv"}, {"sku": "SH-010", "category": "Smart Home", "avg_demand": 19.2, "cv": 0.215, "group": "low_cv"}, {"sku": "SH-009", "category": "Smart Home", "avg_demand": 7.0, "cv": 0.218, "group": "low_cv"}, {"sku": "SH-008", "category": "Smart Home", "avg_demand": 11.8, "cv": 0.221, "group": "low_cv"}, {"sku": "AU-008", "category": "Audio", "avg_demand": 22.9, "cv": 0.5, "group": "mid_cv"}, {"sku": "AU-009", "category": "Audio", "avg_demand": 23.9, "cv": 0.539, "group": "mid_cv"}, {"sku": "AU-010", "category": "Audio", "avg_demand": 52.8, "cv": 0.558, "group": "mid_cv"}, {"sku": "WR-009", "category": "Wearables", "avg_demand": 20.9, "cv": 0.699, "group": "high_cv"}, {"sku": "WR-010", "category": "Wearables", "avg_demand": 17.5, "cv": 0.728, "group": "high_cv"}, {"sku": "WR-008", "category": "Wearables", "avg_demand": 21.6, "cv": 0.749, "group": "high_cv"}], "table_ss": [{"sku": "MA-010", "group": "low_cv", "ss_85": 55.2, "ss_90": 67.9, "ss_95": 87.6, "hc_85": 2.11, "hc_90": 2.6, "hc_95": 3.36}, {"sku": "MA-008", "group": "low_cv", "ss_85": 43.6, "ss_90": 53.7, "ss_95": 69.2, "hc_85": 1.71, "hc_90": 2.11, "hc_95": 2.72}, {"sku": "MA-009", "group": "low_cv", "ss_85": 55.7, "ss_90": 68.6, "ss_95": 88.4, "hc_85": 2.13, "hc_90": 2.62, "hc_95": 3.38}, {"sku": "CP-010", "group": "low_cv", "ss_85": 20.2, "ss_90": 24.9, "ss_95": 32.0, "hc_85": 4.06, "hc_90": 5.0, "hc_95": 6.44}, {"sku": "CP-009", "group": "low_cv", "ss_85": 28.3, "ss_90": 34.8, "ss_95": 44.9, "hc_85": 6.78, "hc_90": 8.34, "hc_95": 10.76}, {"sku": "CP-008", "group": "low_cv", "ss_85": 16.6, "ss_90": 20.4, "ss_95": 26.4, "hc_85": 1.91, "hc_90": 2.36, "hc_95": 3.04}, {"sku": "SH-010", "group": "low_cv", "ss_85": 23.3, "ss_90": 28.7, "ss_95": 37.0, "hc_85": 7.71, "hc_90": 9.49, "hc_95": 12.24}, {"sku": "SH-009", "group": "low_cv", "ss_85": 10.9, "ss_90": 13.5, "ss_95": 17.4, "hc_85": 1.51, "hc_90": 1.86, "hc_95": 2.4}, {"sku": "SH-008", "group": "low_cv", "ss_85": 15.4, "ss_90": 18.9, "ss_95": 24.4, "hc_85": 2.55, "hc_90": 3.14, "hc_95": 4.04}, {"sku": "AU-008", "group": "mid_cv", "ss_85": 31.8, "ss_90": 39.1, "ss_95": 50.4, "hc_85": 7.17, "hc_90": 8.83, "hc_95": 11.38}, {"sku": "AU-009", "group": "mid_cv", "ss_85": 31.3, "ss_90": 38.5, "ss_95": 49.6, "hc_85": 2.41, "hc_90": 2.97, "hc_95": 3.83}, {"sku": "AU-010", "group": "mid_cv", "ss_85": 82.4, "ss_90": 101.4, "ss_95": 130.8, "hc_85": 25.32, "hc_90": 31.16, "hc_95": 40.17}, {"sku": "WR-009", "group": "high_cv", "ss_85": 44.8, "ss_90": 55.1, "ss_95": 71.0, "hc_85": 23.16, "hc_90": 28.51, "hc_95": 36.75}, {"sku": "WR-010", "group": "high_cv", "ss_85": 38.2, "ss_90": 47.0, "ss_95": 60.6, "hc_85": 8.42, "hc_90": 10.36, "hc_95": 13.36}, {"sku": "WR-008", "group": "high_cv", "ss_85": 45.3, "ss_90": 55.8, "ss_95": 71.9, "hc_85": 31.68, "hc_90": 39.0, "hc_95": 50.27}]};
+
+const PLOTLY_CONFIG = { displaylogo: false, responsive: true, modeBarButtonsToRemove: ['lasso2d','select2d'] };
+const BASE_LAYOUT = {
+  font: { family: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif', color: '#0f172a' },
+  plot_bgcolor: 'white',
+  paper_bgcolor: 'white',
+};
+
+// --- Chart 1: Turnover ranking ---
+(function renderTurnover() {
+  const c = DATA.chart1;
+  const colors = c.is_low.map(low => low ? '#ef4444' : '#3b82f6');
+  Plotly.newPlot('chart1', [{
+    type: 'bar',
+    x: c.sku,
+    y: c.turnover,
+    marker: { color: colors, line: { width: 0 } },
+    customdata: c.category,
+    hovertemplate: '<b>%{x}</b> · %{customdata}<br>Turnover: %{y:.2f}×<extra></extra>',
+  }], Object.assign({}, BASE_LAYOUT, {
+    title: { text: 'Annualized Inventory Turnover by SKU', font: { size: 15, color: '#0f172a' }, x: 0.01, xanchor: 'left' },
+    margin: { t: 50, b: 90, l: 55, r: 20 },
+    yaxis: { title: 'Turnover (turns / year)', gridcolor: '#e2e8f0', zerolinecolor: '#cbd5e1' },
+    xaxis: { tickangle: -60, tickfont: { size: 10 }, automargin: true },
+    shapes: [{
+      type: 'line', xref: 'paper', x0: 0, x1: 1,
+      yref: 'y', y0: 4.5, y1: 4.5,
+      line: { color: '#dc2626', dash: 'dash', width: 1.5 },
+    }],
+    annotations: [{
+      xref: 'paper', x: 1, xanchor: 'right',
+      yref: 'y', y: 4.5, yanchor: 'bottom',
+      text: 'Industry floor · 4.5×',
+      showarrow: false,
+      font: { color: '#dc2626', size: 11 },
+      bgcolor: 'rgba(255,255,255,0.85)',
+    }],
+  }), PLOTLY_CONFIG);
+})();
+
+// --- Chart 2: CV segmentation scatter ---
+(function renderCV() {
+  const g = DATA.chart2;
+  const meta = {
+    low_cv:  { color: '#22c55e', label: 'Low CV · stable underselling' },
+    mid_cv:  { color: '#f59e0b', label: 'Mid CV · moderate volatility' },
+    high_cv: { color: '#ef4444', label: 'High CV · irregular' },
+  };
+  const traces = ['low_cv','mid_cv','high_cv'].map(k => ({
+    type: 'scatter',
+    mode: 'markers',
+    name: meta[k].label,
+    x: g[k].demand,
+    y: g[k].cv,
+    customdata: g[k].sku.map((s, i) => [s, g[k].category[i]]),
+    marker: { size: 13, color: meta[k].color, line: { color: 'white', width: 1.5 }, opacity: 0.9 },
+    hovertemplate: '<b>%{customdata[0]}</b> · %{customdata[1]}<br>Avg demand: %{x}/wk<br>CV: %{y:.3f}<extra></extra>',
+  }));
+  Plotly.newPlot('chart2', traces, Object.assign({}, BASE_LAYOUT, {
+    title: { text: 'Demand Volatility — 15 low-turnover SKUs', font: { size: 15 }, x: 0.01, xanchor: 'left' },
+    xaxis: { title: 'Avg weekly demand', gridcolor: '#e2e8f0', zerolinecolor: '#cbd5e1' },
+    yaxis: { title: 'CV (std / mean)', gridcolor: '#e2e8f0', zerolinecolor: '#cbd5e1' },
+    margin: { t: 50, b: 100, l: 60, r: 20 },
+    legend: { orientation: 'h', y: -0.25, x: 0.5, xanchor: 'center', font: { size: 11 } },
+    shapes: [
+      { type: 'line', xref: 'paper', x0: 0, x1: 1, yref: 'y', y0: 0.3, y1: 0.3,
+        line: { color: '#cbd5e1', dash: 'dot', width: 1 } },
+      { type: 'line', xref: 'paper', x0: 0, x1: 1, yref: 'y', y0: 0.6, y1: 0.6,
+        line: { color: '#cbd5e1', dash: 'dot', width: 1 } },
+    ],
+  }), PLOTLY_CONFIG);
+})();
+
+// --- Chart 3: Service level vs holding cost ---
+(function renderHC() {
+  const c = DATA.chart3;
+  const meta = {
+    low_cv:  { color: '#22c55e', label: 'Low CV (9 SKUs)' },
+    mid_cv:  { color: '#f59e0b', label: 'Mid CV (3 SKUs)' },
+    high_cv: { color: '#ef4444', label: 'High CV (3 SKUs)' },
+  };
+  const traces = ['low_cv','mid_cv','high_cv'].map(k => ({
+    type: 'scatter',
+    mode: 'lines+markers+text',
+    name: meta[k].label,
+    x: ['85%', '90%', '95%'],
+    y: c[k],
+    text: c[k].map(v => '$' + v.toFixed(2)),
+    textposition: 'top center',
+    textfont: { size: 10, color: meta[k].color },
+    line: { color: meta[k].color, width: 2.5 },
+    marker: { size: 10, color: meta[k].color, line: { color: 'white', width: 1.5 } },
+    hovertemplate: '<b>' + meta[k].label + '</b><br>Service level: %{x}<br>Weekly HC: $%{y:.2f}<extra></extra>',
+  }));
+  Plotly.newPlot('chart3', traces, Object.assign({}, BASE_LAYOUT, {
+    title: { text: 'Service Level vs Weekly Holding Cost', font: { size: 15 }, x: 0.01, xanchor: 'left' },
+    xaxis: { title: 'Service level', gridcolor: '#e2e8f0' },
+    yaxis: { title: 'Mean weekly holding cost ($)', gridcolor: '#e2e8f0', zerolinecolor: '#cbd5e1', rangemode: 'tozero' },
+    margin: { t: 50, b: 100, l: 60, r: 20 },
+    legend: { orientation: 'h', y: -0.25, x: 0.5, xanchor: 'center', font: { size: 11 } },
+  }), PLOTLY_CONFIG);
+})();
+
+// --- Tables ---
+function fillTable(id, rows, builder) {
+  document.querySelector('#' + id + ' tbody').innerHTML = rows.map(builder).join('');
+}
+
+fillTable('tbl-turnover', DATA.table_turnover, r => `
+  <tr>
+    <td>${r.sku}</td>
+    <td>${r.category}</td>
+    <td class="num">${r.turnover.toFixed(2)}${r.is_low ? '<span class="badge badge-low-turn">low</span>' : ''}</td>
+  </tr>`);
+
+fillTable('tbl-cv', DATA.table_cv, r => `
+  <tr>
+    <td>${r.sku}</td>
+    <td>${r.category}</td>
+    <td class="num">${r.avg_demand}</td>
+    <td class="num">${r.cv.toFixed(3)}</td>
+    <td><span class="badge badge-${r.group}">${r.group}</span></td>
+  </tr>`);
+
+fillTable('tbl-ss', DATA.table_ss, r => `
+  <tr>
+    <td>${r.sku}</td>
+    <td><span class="badge badge-${r.group}">${r.group}</span></td>
+    <td class="num">${r.ss_85.toFixed(1)}</td>
+    <td class="num">${r.ss_90.toFixed(1)}</td>
+    <td class="num">${r.ss_95.toFixed(1)}</td>
+    <td class="num">${r.hc_85.toFixed(2)}</td>
+    <td class="num">${r.hc_90.toFixed(2)}</td>
+    <td class="num">${r.hc_95.toFixed(2)}</td>
+  </tr>`);
+
+// --- Tab switching ---
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const target = btn.dataset.tab;
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b === btn));
+    document.querySelectorAll('.tab-panel').forEach(p => p.classList.toggle('active', p.dataset.panel === target));
+  });
+});
+</script>
+</body>
+</html>

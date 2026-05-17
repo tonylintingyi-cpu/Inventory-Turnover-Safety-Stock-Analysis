@@ -6,6 +6,35 @@
 
 ---
 
+## 2026-05-17
+
+### 完成
+- Dashboard 範圍定案：只放 EDA 三節，不放 cleaning summary、不放敘述文字、不接 Gemini AI
+- 部署形式：純靜態 `index.html` 放 repo 根目錄，Plotly.js 走 CDN，GitHub Pages 從 `main / root` 部署
+- 從 `data/cleaned/veltix_cleaned.csv` 一次性計算所有 dashboard 資料（KPI / 3 charts / 3 tables），inline 成 `const DATA = {...}` 嵌進 HTML
+- 四張 KPI 卡：Coverage（50 SKUs / 156 weeks）、低周轉 15/50、Worst SKU MA-009、Holding cost gap 6.2× higher
+- 三張 Plotly 互動圖：
+  1. Turnover ranking bar（50 SKUs 降冪，低周轉紅色其他藍色，4.5× 紅虛線標 industry floor）
+  2. CV scatter（15 低周轉 SKU 三群著色，0.3 / 0.6 灰虛線標 bucket 邊界）
+  3. SL vs HC 三條折線（單張圖三色，點上直接標 $ 值）
+- 三張表用 tab 切換（不並列，避免太窄）：Turnover Ranking 50 / CV Segmentation 15 / Safety Stock Simulation 15
+- 修正 SS 表欄位 / 數字偏移（CSS `.num` 原本只套 td 沒套 th，補上 th.num 後對齊）
+- KPI 文案 polish：Worst SKU 主角改成 SKU id（不是 turnover 數字）、Cost gap 加上 `higher` 跟 `$33/wk vs $5/wk` 錨點、`@` 改成括號展開 SL → service level
+- 數字對帳：50 SKUs turnover 排序、CV 分群、HC 三組均值、6.2× 比值都跟 EDA notebook 對得起來
+
+### 下一步
+- 把 `index.html` push 上去
+- GitHub repo 設定 → Pages → source 選 `main / root`，等部署完拿到公開 URL
+- 之後想加 README badge 連到 dashboard URL
+
+### 備註 / 卡關
+- 早期討論時用戶推翻 PRD 的「Executive Summary + Gemini AI 報告」設計，改成純可互動展示
+- pipeline.py 同步決定不寫了（先前 PRD §9 規劃由 AI 從 notebook 生成的 pipeline.py 暫不做）
+- output.png 是稍早隨便丟的截圖，沒 commit
+- docs/Veltix PRD.md 在工作目錄被刪了（pre-existing change），先不動，留給用戶決定要不要一起 commit
+
+---
+
 ## 2026-05-10
 
 ### 完成
